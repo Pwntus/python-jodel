@@ -1,6 +1,7 @@
 import sys
 import ast
 import random
+import time
 import datetime
 import json
 import base64
@@ -12,33 +13,33 @@ import requests
 # DO NOT EDIT ANY CONFIGS HERE
 # READ THE DOCUMENTATION FOUND AT GITHUB
 PYTHON_JODEL_CONFIG = {
-	'client_id'			: '81e8a76e-1e02-4d17-9ba0-8a7020261b26',
-	'api_url'			: 'https://api.go-tellm.com/api',
-	'device_uid'		: None,
-	'access_token'		: None,
-	'expiration_date' 	: None,
-	'refresh_token'		: None,
-	'distinct_id'		: None,
-	'location'			: {
-		'lat'			: 69.651996,
-		'lng'			: 18.948217,
-		'city'			: 'Tromso',
-		'country'		: 'NO',
-		'name'			: 'Tromso'
+	'client_id': '81e8a76e-1e02-4d17-9ba0-8a7020261b26',
+	'api_url': 'https://api.go-tellm.com/api',
+	'device_uid': None,
+	'access_token': None,
+	'expiration_date': None,
+	'refresh_token': None,
+	'distinct_id': None,
+	'location': {
+		'lat': 69.651996,
+		'lng': 18.948217,
+		'city': 'Tromso',
+		'country': 'NO',
+		'name': 'Tromso'
 	}
 }
 PYTHON_JODEL_CONFIG_FILE = 'pj_config'
 PYTHON_JODEL_HMAC_KEY = bytearray([74, 121, 109, 82, 78, 107, 79, 71, 68, 85, 72, 81, 77, 86, 101, 86, 118, 100, 122, 118, 97, 120, 99, 75, 97, 101, 117, 74, 75, 87, 87, 70, 101, 105, 104, 110, 89, 110, 115, 89])
 PYTHON_JODEL_HEADERS = {
-	'User-Agent'		: 'Jodel/4.4.9 Dalvik/2.1.0 (Linux; U; Android 5.1.1; )',
-	'Accept-Encoding'	:'gzip',
-	'Content-Type'		:'application/json; charset=UTF-8'
+	'User-Agent': 'Jodel/4.4.9 Dalvik/2.1.0 (Linux; U; Android 5.1.1; )',
+	'Accept-Encoding':'gzip',
+	'Content-Type':'application/json; charset=UTF-8'
 }
 
 class Client:
-	config 		= None
-	_loc_str 	= None
-	_s 			= None
+	config = None
+	_loc_str = None
+	_s = None
 
 	def __init__(self, location = None):
 		self.config = PYTHON_JODEL_CONFIG
@@ -48,7 +49,7 @@ class Client:
 		self._load_config()
 
 		if location:
-			self.update_location(location)
+			self.set_location(location)
 
 	def _error(self, msg):
 		sys.exit('Error: '+ msg)
@@ -61,6 +62,7 @@ class Client:
 
 	def _set_loc_str(self, location):
 		ref = location if location else PYTHON_JODEL_CONFIG['location']
+		self.config['location'] = ref
 		self._loc_str = '"location":{"loc_accuracy":1,"city":"%s","loc_coordinates":{"lat":%f,"lng":%f},"country":"%s","name":"%s"}' % (ref['city'], ref['lat'], ref['lng'], ref['country'], ref['name'])
 
 	def _touchopen(self, fn, *args, **kwargs):
@@ -89,6 +91,27 @@ class Client:
 		except IOError as e:
 			self._error('failed to load config file: '+ str(e.strerror));
 
+	def _check_access_token(self):
+		if int(self.config['expiration_date']) < int(time.time()):
+
+			payload = '{"client_id":%s,"distinct_id":"%s","refresh_token":"%s"}' % (self.config['client_id'], self.config['distinct_id'], self.config['refresh_token'])
+		
+			r = self._send_request('POST', '/v2/users/refreshToken', payload)
+			if r[0] == 200:
+				self.config['access_token'] = r[1]['access_token']
+				self.config['expiration_date'] = r[1]['expiration_date']
+				try:
+					with open(PYTHON_JODEL_CONFIG_FILE, 'w') as f:
+						f.write(str(self.config))
+					self._log('wrote new config file')
+				except IOError as e:
+					self._error('failed to write config file: '+ e.strerror)
+			else:
+				self._warning('Failed to refresh access token, requests failed')
+				return False
+
+		return True
+
 	def _sign_request(self, method, url, headers, payload = None):
 		timestamp = datetime.datetime.utcnow().isoformat()[:-7] +'Z'
 
@@ -111,6 +134,8 @@ class Client:
 		headers['X-Api-Version'] = '0.2'
 
 	def _send_request(self, method, endpoint, payload = None):
+		self._check_access_token()
+
 		url = self.config['api_url'] + endpoint
 		headers = PYTHON_JODEL_HEADERS
 
@@ -139,17 +164,28 @@ class Client:
 
 		r = self._send_request('POST', '/v2/users', payload)
 		if r[0] == 200:
-			self.config['access_token'] 	= r[1]['access_token']
-			self.config['expiration_date'] 	= r[1]['expiration_date']
-			self.config['refresh_token'] 	= r[1]['refresh_token']
-			self.config['distinct_id'] 		= r[1]['distinct_id']
+			self.config['access_token'] = r[1]['access_token']
+			self.config['expiration_date'] = r[1]['expiration_date']
+			self.config['refresh_token'] = r[1]['refresh_token']
+			self.config['distinct_id'] = r[1]['distinct_id']
 		else:
 			self._error('failed to refresh tokens (HTTP code '+ str(r[0]) +')')
 		try:
 			with open(PYTHON_JODEL_CONFIG_FILE, 'w') as f:
 				f.write(str(self.config))
+			self._log('wrote new config file')
 		except IOError as e:
 			self._error('failed to write config file: '+ e.strerror)
-		self._log('wrote new config file')
 
 		return r
+
+	def set_location(self, location):
+		try:
+			location['country'] = None if 'country' not in location else location['country']
+			location['name'] = None if 'name' not in location else location['name']
+			self._set_loc_str(location)
+		except:
+			self._warning('failed to set location')
+			return
+		return self._send_request('PUT', '/v2/users/location', '{%s}' % self._loc_str)
+
