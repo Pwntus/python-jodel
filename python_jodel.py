@@ -220,4 +220,10 @@ class Client:
 
 	def get_post(self, post_id):
 		return self._send_request('GET', '/v2/posts/%s/' % post_id)
+
+	def vote_up(self, post_id):
+		return self._send_request('PUT', '/v2/posts/%s/upvote' % post_id)
+
+	def vote_down(self, post_id):
+		return self._send_request('PUT', '/v2/posts/%s/downvote' % post_id)
 	
