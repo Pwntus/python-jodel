@@ -11,7 +11,7 @@ The client will re-use this configuration if it exists.
 
 ## Usage
 ```python
->>> python import python_jodel
+>>> import python_jodel
 >>> location = {lat = 78.089409, lng = 15.525395, city = 'Svalbard'}
 
 >>> client = python_jodel.Client(location)
