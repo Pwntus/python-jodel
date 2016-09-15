@@ -198,3 +198,26 @@ class Client:
 		postid = ',"ancestor":"'+ postid +'"' if postid else ''
 		payload = '{"color":"%s"%s,"message":"%s",%s}' % (color, postid, message, self._loc_str)
 		return self._send_request('POST', '/v2/posts/', payload)
+
+	def delete_post(self, postid):
+		return self._send_request('DELETE', '/v2/posts/%s' % post_id)
+
+	def _get_posts(self, post_types, skip = None, limit= 60, mine =False, after = None):
+		url = '/v2/posts/%s%s?lat=%f&lng=%f' % ('mine' if mine else 'location', post_types, self.lat, self.lng)
+		url += '&skip=%d' % skip if skip else ''
+		url += '&limit=%d' % limit if limit else ''
+		url += '&after=%s' % after if after else ''
+		return self._send_request('GET', url)
+
+	def get_posts_recent(self, skip = None, limit = 60, mine = False, after = None):
+		return self._get_posts('', skip, limit, mine, after)
+
+	def get_posts_discussed(self, skip=None, limit=60, mine=False, after = None):
+		return self._get_posts('/discussed', skip, limit, mine, after)
+
+	def get_posts_popular(self, skip=None, limit=60, mine=False, after = None):
+		return self._get_posts('/popular', skip, limit, mine, after)
+
+	def get_post(self, post_id):
+		return self._send_request('GET', '/v2/posts/%s/' % post_id)
+	
