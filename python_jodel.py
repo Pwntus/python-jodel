@@ -226,4 +226,9 @@ class Client:
 
 	def vote_down(self, post_id):
 		return self._send_request('PUT', '/v2/posts/%s/downvote' % post_id)
-	
+
+	def get_karma(self):
+		return self._send_request('GET', '/v2/users/karma')
+
+	def get_user(self):
+		return self._send_request('GET', '/v3/user/config')
