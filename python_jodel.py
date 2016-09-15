@@ -29,6 +29,7 @@ PYTHON_JODEL_CONFIG = {
 	}
 }
 PYTHON_JODEL_CONFIG_FILE = 'pj_config'
+PYTHON_JODEL_COLORS = ['9EC41C', 'FF9908', 'DD5F5F', '8ABDB0', '066A3CB', 'FFBA00']
 PYTHON_JODEL_HMAC_KEY = bytearray([74, 121, 109, 82, 78, 107, 79, 71, 68, 85, 72, 81, 77, 86, 101, 86, 118, 100, 122, 118, 97, 120, 99, 75, 97, 101, 117, 74, 75, 87, 87, 70, 101, 105, 104, 110, 89, 110, 115, 89])
 PYTHON_JODEL_HEADERS = {
 	'User-Agent': 'Jodel/4.4.9 Dalvik/2.1.0 (Linux; U; Android 5.1.1; )',
@@ -189,3 +190,11 @@ class Client:
 			return
 		return self._send_request('PUT', '/v2/users/location', '{%s}' % self._loc_str)
 
+	def post(self, message = None, color = None, postid = None):
+		if not message:
+			self._warning('message empty')
+			return
+		color = random.choice() if not color else None
+		postid = ',"ancestor":"'+ postid +'"' if postid else ''
+		payload = '{"color":"%s"%s,"message":"%s",%s}' % (color, postid, message, self._loc_str)
+		return self._send_request('POST', '/v2/posts/', payload)
