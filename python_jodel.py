@@ -203,7 +203,7 @@ class Client:
 		return self._send_request('DELETE', '/v2/posts/%s' % post_id)
 
 	def _get_posts(self, post_types, skip = None, limit= 60, mine =False, after = None):
-		url = '/v2/posts/%s%s?lat=%f&lng=%f' % ('mine' if mine else 'location', post_types, self.lat, self.lng)
+		url = '/v2/posts/%s%s?lat=%f&lng=%f' % ('mine' if mine else 'location', post_types, self.config['location']['lat'], self.config['location']['lng'])
 		url += '&skip=%d' % skip if skip else ''
 		url += '&limit=%d' % limit if limit else ''
 		url += '&after=%s' % after if after else ''
