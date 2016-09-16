@@ -95,7 +95,7 @@ class Client:
 	def _check_access_token(self):
 		if int(self.config['expiration_date']) < int(time.time()):
 
-			payload = '{"client_id":%s,"distinct_id":"%s","refresh_token":"%s"}' % (self.config['client_id'], self.config['distinct_id'], self.config['refresh_token'])
+			payload = '{"client_id":"%s","distinct_id":"%s","refresh_token":"%s"}' % (self.config['client_id'], self.config['distinct_id'], self.config['refresh_token'])
 		
 			r = self._send_request('POST', '/v2/users/refreshToken', payload)
 			if r[0] == 200:
